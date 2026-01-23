@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 interface DownloadProps {
   pdfUrl: string
@@ -12,10 +12,10 @@ interface DownloadProps {
 const Download: React.FC<DownloadProps> = ({ pdfUrl, fileName, onBack }) => {
   const [isDownloading, setIsDownloading] = useState(false)
 
+  // Manual download: hidden anchor tag
   const handleDownload = () => {
     if (!pdfUrl) return
 
-    // Manual download: hidden anchor tag
     const link = document.createElement("a")
     link.href = pdfUrl
     link.download = fileName || "converted.pdf"
@@ -23,26 +23,6 @@ const Download: React.FC<DownloadProps> = ({ pdfUrl, fileName, onBack }) => {
     link.click()
     document.body.removeChild(link)
   }
-
-  // Trigger automatic download on component mount
-  useEffect(() => {
-    if (pdfUrl) {
-      // Small delay to ensure UI transitions smoothly
-      const timer = setTimeout(() => {
-        // Automatic download: hidden iframe is the most reliable cross-browser way 
-        // to trigger a download without opening new tabs or triggering popup blockers
-        let iframe = document.getElementById('download-iframe') as HTMLIFrameElement;
-        if (!iframe) {
-          iframe = document.createElement('iframe');
-          iframe.id = 'download-iframe';
-          iframe.style.display = 'none';
-          document.body.appendChild(iframe);
-        }
-        iframe.src = pdfUrl;
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [pdfUrl]);
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
