@@ -28,30 +28,33 @@ export async function POST(request: NextRequest) {
 
     // ConvertAPI endpoint - 'images/to/pdf' is more generic and supports multiple formats/files
     const apiUrl = "https://v2.convertapi.com/convert/images/to/pdf"
-    // Updated with the new token provided by the user
-    const apiSecret = "lLupjeVik1648RkltaOFncl80QOBPCiZ"
+    // Load key from environment variables
+    const apiSecret = process.env.CONVERTAPI_SECRET || "lLupjeVik1648RkltaOFncl80QOBPCiZ"
 
-    if (!apiSecret) {
-      console.error("ConvertAPI secret missing")
-      return NextResponse.json({ error: "Server misconfigured: API Key missing" }, { status: 500 })
+    if (!apiSecret || apiSecret === "lLupjeVik1648RkltaOFncl80QOBPCiZ") {
+      console.error("ConvertAPI token missing or using invalid placeholder")
+      return NextResponse.json({ 
+        error: "Server misconfigured: Invalid or missing ConvertAPI Token. Please configure CONVERTAPI_SECRET in your .env.local file." 
+      }, { status: 500 })
     }
 
     // Create FormData for ConvertAPI
     const convertApiFormData = new FormData()
 
-    // Add all files to the form data using the field name ConvertAPI expects ('Files')
+    // Add all files to the form data using the field name ConvertAPI expects ('Files[0]', 'Files[1]', etc.)
     // and ensuring we preserve the original filenames and types
-    for (const file of files) {
-      const filename = (file as File).name || `upload-${Date.now()}.jpg`
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const filename = (file as File).name || `upload-${Date.now()}-${i}.jpg`
       try {
         const arrayBuffer = await file.arrayBuffer()
         const forwardedBlob = new Blob([arrayBuffer], { type: (file as File).type || "application/octet-stream" })
-        // ConvertAPI 'images/to/pdf' endpoint expects the parameter name to be 'Files'
-        convertApiFormData.append("Files", forwardedBlob, filename)
-        console.log(`Forwarding file to ConvertAPI: ${filename}, type=${file.type}, size=${arrayBuffer.byteLength}`)
+        // ConvertAPI 'images/to/pdf' endpoint expects indexed parameter names
+        convertApiFormData.append(`Files[${i}]`, forwardedBlob, filename)
+        console.log(`Forwarding file to ConvertAPI: Files[${i}] -> ${filename}, type=${file.type}, size=${arrayBuffer.byteLength}`)
       } catch (err) {
         console.warn(`Failed to read file ${filename} arrayBuffer(), falling back to original`, err)
-        convertApiFormData.append("Files", file, filename)
+        convertApiFormData.append(`Files[${i}]`, file, filename)
       }
     }
 
